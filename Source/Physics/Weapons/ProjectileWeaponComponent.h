@@ -1,0 +1,22 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Weapons/PhysicsWeaponComponent.h"
+#include "ProjectileWeaponComponent.generated.h"
+
+UCLASS(Blueprintable, BlueprintType, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+class PHYSICS_API UProjectileWeaponComponent : public UPhysicsWeaponComponent
+{
+	GENERATED_BODY()
+
+public:
+	float m_fFireDistance = 100000;
+
+	/** Projectile class to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
+	TSubclassOf<class APhysicsProjectile> m_ProjectileClass;
+
+public:
+	/** UPhysicsWeaponComponent **/
+	virtual void Fire() override;
+};

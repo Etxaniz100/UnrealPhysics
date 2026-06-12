@@ -59,10 +59,24 @@ void UPhysicsWeaponComponent::ApplyDamage(const FHitResult& rHit, AActor* pCause
 		pCauser = GetOwner();
 	}
 
-	UGameplayStatics::ApplyPointDamage(rHit.GetActor(), 50, pCauser->GetActorRotation().Vector(), rHit, UGameplayStatics::GetPlayerController(this, 0), pCauser, DamageTypeClass);
-	// Apply radial damage
-	// TODO: Bool m_bDamageInArea
+	if (m_iDamageType == 0) // None
+	{
+		// float UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, AController* EventInstigator, AActor* DamageCauser, TSubclassOf<UDamageType> DamageTypeClass)
+		UGameplayStatics::ApplyDamage(rHit.GetActor(), m_fDamage, UGameplayStatics::GetPlayerController(this, 0), pCauser, DamageTypeClass);
+	}
+	else if (m_iDamageType == 1) // Linear
+	{
+		UGameplayStatics::ApplyPointDamage(rHit.GetActor(), m_fDamage, pCauser->GetActorForwardVector(), rHit, UGameplayStatics::GetPlayerController(this, 0), pCauser, DamageTypeClass);
+	}
+	else if (m_iDamageType == 2) // Radial
+	{
+		// bool UGameplayStatics::ApplyRadialDamage(const UObject* WorldContextObject, float BaseDamage, const FVector& Origin, float DamageRadius, TSubclassOf<UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser, AController* InstigatedByController, bool bDoFullDamage, ECollisionChannel DamagePreventionChannel )
+		const TArray<AActor*> tIgnoreActors = { pCauser };
+		UGameplayStatics::ApplyRadialDamage(rHit.GetActor(), m_fDamage, rHit.ImpactPoint, m_fDamageRadius, DamageTypeClass, tIgnoreActors, pCauser, UGameplayStatics::GetPlayerController(this, 0));
+		DrawDebugSphere(GetWorld(), rHit.ImpactPoint, m_fDamageRadius, 12, FColor::Red, false, 1.f);
 
+	}
+	
 
 	//if (OtherComp && OtherComp->IsSimulatingPhysics())
 	//{

@@ -48,6 +48,77 @@ void APhysicsCharacter::BeginPlay()
 void APhysicsCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+
+
+	if (m_bIsGrabbing)
+	{
+		FVector vLookingDir = FirstPersonCameraComponent->GetComponentRotation().Vector();
+		vLookingDir.Normalize();
+		FVector vPos = GetActorLocation() + vLookingDir * m_fGrabDistance;
+		m_PhysicsHandle->SetTargetLocation(vPos);
+	}
+	else
+	{
+		// Find posible object to outline
+
+		FVector vLookingDir = FirstPersonCameraComponent->GetComponentRotation().Vector();
+		FVector vFireStartPoint = FirstPersonCameraComponent->GetComponentLocation();
+		FVector vFireEndPoint = FirstPersonCameraComponent->GetComponentLocation() + vLookingDir * m_MaxGrabDistance;
+
+		FHitResult oHit;
+		FCollisionQueryParams oParams;
+
+		UPrimitiveComponent* pGrabedComponent = nullptr;
+
+		if (GetWorld()->LineTraceSingleByChannel(oHit, vFireStartPoint, vFireEndPoint, ECC_Visibility, oParams))
+		{
+			if (oHit.GetActor() != m_pHighlightedObject)
+			{
+				if(m_pHighlightedObject)
+				{
+					auto tComps = m_pHighlightedObject->GetComponents();
+					for (UActorComponent* pComp : tComps)
+					{
+						if (UMeshComponent* pMesh = Cast< UMeshComponent>(pComp))
+						{
+							pMesh->SetOverlayMaterial(nullptr);
+						}
+					}
+					m_pHighlightedObject = nullptr;
+				}
+			
+				if (oHit.GetComponent() && oHit.GetComponent()->IsSimulatingPhysics())
+				{
+					m_pHighlightedObject = oHit.GetActor();
+					pGrabedComponent = oHit.GetComponent();
+					auto tComps = m_pHighlightedObject->GetComponents();
+					for (UActorComponent* pComp : tComps)
+					{
+						if (UMeshComponent* pMesh = Cast< UMeshComponent>(pComp))
+						{
+							pMesh->SetOverlayMaterial(m_HighlightMaterial);
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			if (m_pHighlightedObject)
+			{
+				auto tComps = m_pHighlightedObject->GetComponents();
+				for (UActorComponent* pComp : tComps)
+				{
+					if (UMeshComponent* pMesh = Cast< UMeshComponent>(pComp))
+					{
+						pMesh->SetOverlayMaterial(nullptr);
+					}
+				}
+				m_pHighlightedObject = nullptr;
+			}
+		}
+	}
 }
 
 void APhysicsCharacter::NotifyControllerChanged()
@@ -88,7 +159,6 @@ void APhysicsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 void APhysicsCharacter::SetIsSprinting(bool NewIsSprinting)
 {
-
 }
 
 void APhysicsCharacter::Move(const FInputActionValue& Value)
@@ -124,10 +194,55 @@ void APhysicsCharacter::Sprint(const FInputActionValue& Value)
 
 void APhysicsCharacter::GrabObject(const FInputActionValue& Value)
 {
+	if (!m_PhysicsHandle || m_bIsGrabbing)
+	{
+		return;
+	}
+
+	FVector vLookingDir = FirstPersonCameraComponent->GetComponentRotation().Vector();
+	FVector vFireStartPoint = FirstPersonCameraComponent->GetComponentLocation(); 
+	FVector vFireEndPoint = FirstPersonCameraComponent->GetComponentLocation() + vLookingDir * m_MaxGrabDistance;
+
+	FHitResult oHit;
+	FCollisionQueryParams oParams;
+	
+	UPrimitiveComponent* pGrabedComponent = nullptr;
+
+	if (GetWorld()->LineTraceSingleByChannel(oHit, vFireStartPoint, vFireEndPoint, ECC_Visibility, oParams))
+	{
+
+		if (oHit.GetComponent() && oHit.GetComponent()->IsSimulatingPhysics())
+		{
+			pGrabedComponent = oHit.GetComponent();
+
+			DrawDebugSphere(GetWorld(), oHit.ImpactPoint, 3, 50, FColor::Green, false, 1.f);
+		}
+		else
+		{
+			DrawDebugSphere(GetWorld(), oHit.ImpactPoint, 3, 50, FColor::Red, false, 1.f);
+		}
+	}
+
+	if (pGrabedComponent)
+	{
+		m_bIsGrabbing = true;
+		// (class UPrimitiveComponent* Component, FName InBoneName, FVector GrabLocation, FRotator Rotation)
+		//m_PhysicsHandle->GrabComponentAtLocationWithRotation(pGrabedComponent, "", oHit.ImpactPoint, oHit.GetActor()->GetActorRotation());
+		m_PhysicsHandle->GrabComponent(pGrabedComponent, FName(), oHit.ImpactPoint, false);
+		m_fGrabDistance = FVector::Distance(oHit.ImpactPoint, GetActorLocation());
+		
+		m_PhysicsHandle->SetInterpolationSpeed(m_BaseInterpolationSpeed/(pGrabedComponent->GetMass()==0.f?0.001f:pGrabedComponent->GetMass()));
+	}
 }
 
 void APhysicsCharacter::ReleaseObject(const FInputActionValue& Value)
 {
+	if (!m_bIsGrabbing)
+	{
+		return;
+	}
+	m_PhysicsHandle->ReleaseComponent();
+	m_bIsGrabbing = false;
 }
 
 void APhysicsCharacter::ZoomIn()

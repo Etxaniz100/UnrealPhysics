@@ -31,16 +31,18 @@ void UHitscanWeaponComponent::Fire()
 	if (GetWorld()->LineTraceSingleByChannel(oHit, vFireStartPoint, vFireEndPoint, ECC_Visibility, oParams))
 	{
 
-		if (oHit.GetComponent() && oHit.GetComponent()->IsSimulatingPhysics())
-		{
-			oHit.GetComponent()->AddImpulse(vLookingDir * 100000);
-		
-			DrawDebugSphere(GetWorld(), oHit.ImpactPoint, 3, 50, FColor::Green, false, 1.f);
-		}
-		else
-		{
-			DrawDebugSphere(GetWorld(), oHit.ImpactPoint, 3, 50, FColor::Red, false, 1.f);
-		}
+		ApplyDamage(oHit, GetOwner());
+		//if (oHit.GetComponent() && oHit.GetComponent()->IsSimulatingPhysics())
+		//{
+		//	
+		//	oHit.GetComponent()->AddImpulse(vLookingDir * 100000);
+		//
+		//	DrawDebugSphere(GetWorld(), oHit.ImpactPoint, 3, 50, FColor::Green, false, 1.f);
+		//}
+		//else
+		//{
+		//	DrawDebugSphere(GetWorld(), oHit.ImpactPoint, 3, 50, FColor::Red, false, 1.f);
+		//}
 	}
 
 }

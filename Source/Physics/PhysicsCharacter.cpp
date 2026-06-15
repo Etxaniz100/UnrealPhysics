@@ -229,6 +229,9 @@ void APhysicsCharacter::GrabObject(const FInputActionValue& Value)
 		// (class UPrimitiveComponent* Component, FName InBoneName, FVector GrabLocation, FRotator Rotation)
 		//m_PhysicsHandle->GrabComponentAtLocationWithRotation(pGrabedComponent, "", oHit.ImpactPoint, oHit.GetActor()->GetActorRotation());
 		m_PhysicsHandle->GrabComponent(pGrabedComponent, FName(), oHit.ImpactPoint, false);
+		
+		m_PhysicsHandle->bRotationConstrained = !pGrabedComponent->ComponentHasTag("Door");
+		
 		m_fGrabDistance = FVector::Distance(oHit.ImpactPoint, GetActorLocation());
 		
 		m_PhysicsHandle->SetInterpolationSpeed(m_BaseInterpolationSpeed/(pGrabedComponent->GetMass()==0.f?0.001f:pGrabedComponent->GetMass()));
